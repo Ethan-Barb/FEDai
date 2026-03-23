@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fed Rate Advisor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* =====================================================
+       CSS VARIABLES & RESET
+    ===================================================== */
+    :root {
+      --bg: #0a0c10;
+      --surface: #10141c;
+      --surface-2: #161b26;
+      --border: rgba(255,255,255,0.07);
+      --border-bright: rgba(255,255,255,0.14);
+      --text: #e8e6df;
+      --text-muted: #7a7d8a;
+      --text-dim: #4a4d5a;
+      --accent: #c8a96e;        /* Fed gold */
+      --accent-dim: rgba(200,169,110,0.12);
+      --accent-glow: rgba(200,169,110,0.25);
+      --tighten: #e05c5c;
+      --tighten-dim: rgba(224,92,92,0.12);
+      --loosen: #5cb8a0;
+      --loosen-dim: rgba(92,184,160,0.12);
+      --hold: #c8a96e;
+      --hold-dim: rgba(200,169,110,0.12);
+      --radius: 12px;
+      --radius-sm: 6px;
+      --font-serif: 'DM Serif Display', Georgia, serif;
+      --font-sans: 'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(200,169,110,0.06) 0%, transparent 60%);
+    }
+
+    /* =====================================================
+       LAYOUT
+    ===================================================== */
+    .app-wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* =====================================================
+       HEADER
+    ===================================================== */
+    header {
+      padding: 48px 0 40px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .header-left {}
+
+    .logo-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 400;
+      color: var(--text);
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+    }
+
+    h1 em {
+      color: var(--accent);
+      font-style: italic;
+    }
+
+    .header-sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 8px;
+      max-width: 500px;
+    }
+
+    .mode-toggle {
+      display: flex;
+      gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 4px;
+    }
+
+    .mode-toggle button {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 16px;
+      border: none;
+      border-radius: 99px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--text-muted);
+      background: transparent;
+    }
+
+    .mode-toggle button.active {
+      background: var(--accent);
+      color: #0a0c10;
+    }
+
+    /* =====================================================
+       MAIN GRID
+    ===================================================== */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    /* =====================================================
+       PANEL / CARD
+    ===================================================== */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .panel-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 99px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .panel-body { padding: 24px; }
+
+    /* =====================================================
+       FORM SECTIONS
+    ===================================================== */
+    .form-section {
+      margin-bottom: 32px;
+    }
+
+    .form-section:last-child { margin-bottom: 0; }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .field-grid.single { grid-template-columns: 1fr; }
+
+    @media (max-width: 600px) {
+      .field-grid { grid-template-columns: 1fr; }
+    }
+
+    /* =====================================================
+       FIELD
+    ===================================================== */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .field label .required {
+      color: var(--accent);
+      font-size: 10px;
+    }
+
+    .field label .optional {
+      font-size: 10px;
+      color: var(--text-dim);
+      font-weight: 400;
+    }
+
+    .tooltip-icon {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      border: 1px solid var(--border-bright);
+      color: var(--text-dim);
+      font-size: 9px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: help;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .tooltip-icon:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e2433;
+      border: 1px solid var(--border-bright);
+      color: var(--text);
+      font-size: 12px;
+      font-family: var(--font-sans);
+      font-weight: 400;
+      padding: 8px 12px;
+      border-radius: 6px;
+      white-space: nowrap;
+      max-width: 220px;
+      white-space: normal;
+      z-index: 100;
+      line-height: 1.5;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper .unit {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+
+    input[type="number"],
+    input[type="range"] {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      padding: 10px 36px 10px 12px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      -moz-appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    input[type="number"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    input[type="number"].error {
+      border-color: var(--tighten);
+    }
+
+    /* Slider */
+    .slider-field {
+      gap: 8px;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      background: var(--surface-2);
+      border: none;
+      border-radius: 99px;
+      padding: 0;
+      cursor: pointer;
+      flex: 1;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: none;
+    }
+
+    .slider-value {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent);
+      min-width: 42px;
+      text-align: right;
+    }
+
+    /* =====================================================
+       ADVANCED WEIGHTS
+    ===================================================== */
+    #weights-section {
+      display: none;
+    }
+
+    #weights-section.visible {
+      display: block;
+    }
+
+    /* =====================================================
+       RUN BUTTON
+    ===================================================== */
+    .run-btn {
+      width: 100%;
+      padding: 16px 24px;
+      background: var(--accent);
+      color: #0a0c10;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 8px;
+      letter-spacing: 0.01em;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .run-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0);
+      transition: background 0.2s;
+    }
+
+    .run-btn:hover::before { background: rgba(255,255,255,0.1); }
+    .run-btn:active { transform: scale(0.99); }
+
+    .run-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .run-btn .btn-inner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(10,12,16,0.3);
+      border-top-color: #0a0c10;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .run-btn.loading .spinner { display: block; }
+    .run-btn.loading .btn-text::after { content: 'ing...'; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* =====================================================
+       RESULT PANEL
+    ===================================================== */
+    .result-panel {
+      position: sticky;
+      top: 24px;
+    }
+
+    .result-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 24px;
+      text-align: center;
+      gap: 12px;
+    }
+
+    .result-empty-icon {
+      font-size: 40px;
+      filter: grayscale(1);
+      opacity: 0.3;
+    }
+
+    .result-empty-text {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 220px;
+      line-height: 1.6;
+    }
+
+    /* Result filled */
+    #result-filled {
+      display: none;
+    }
+
+    .result-hero {
+      padding: 28px 24px 24px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .result-stance-pill {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 99px;
+      margin-bottom: 16px;
+    }
+
+    .result-stance-pill.Tighten { background: var(--tighten-dim); color: var(--tighten); }
+    .result-stance-pill.Loosen { background: var(--loosen-dim); color: var(--loosen); }
+    .result-stance-pill.Hold { background: var(--hold-dim); color: var(--hold); }
+
+    .result-rate {
+      font-family: var(--font-serif);
+      font-size: 64px;
+      line-height: 1;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      transition: color 0.3s;
+    }
+
+    .result-rate.Tighten { color: var(--tighten); }
+    .result-rate.Loosen { color: var(--loosen); }
+    .result-rate.Hold { color: var(--hold); }
+
+    .result-label {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Confidence meter */
+    .confidence-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .confidence-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      flex-shrink: 0;
+    }
+
+    .confidence-bar {
+      flex: 1;
+      height: 4px;
+      background: var(--surface-2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1), background 0.3s;
+    }
+
+    .confidence-fill.Low { width: 25%; background: var(--text-dim); }
+    .confidence-fill.Medium { width: 60%; background: var(--accent); }
+    .confidence-fill.High { width: 95%; background: var(--tighten); }
+
+    .confidence-fill.Loosen.High { background: var(--loosen); }
+
+    .confidence-val {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    /* Explanation */
+    .explanation-block {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .explanation-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+
+    .explanation-text {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* Factor breakdown */
+    .factors-block {
+      padding: 20px 24px;
+    }
+
+    .factors-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+
+    .factor-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .factor-row:last-child { border-bottom: none; }
+
+    .factor-name {
+      font-size: 12px;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    .factor-bar-wrapper {
+      width: 80px;
+      height: 4px;
+      background: var(--surface-2);
+      border-radius: 99px;
+      position: relative;
+      overflow: visible;
+    }
+
+    .factor-bar-track {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      height: 4px;
+      border-radius: 99px;
+      transition: width 0.5s ease, background 0.3s;
+    }
+
+    .factor-contrib {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      min-width: 52px;
+      text-align: right;
+    }
+
+    .factor-contrib.positive { color: var(--tighten); }
+    .factor-contrib.negative { color: var(--loosen); }
+    .factor-contrib.neutral { color: var(--text-dim); }
+
+    /* Regime alerts */
+    .regime-alert {
+      background: var(--surface-2);
+      border: 1px solid var(--border-bright);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin: 4px 24px 0;
+    }
+
+    /* =====================================================
+       CHART SECTION
+    ===================================================== */
+    .chart-container {
+      padding: 24px;
+      border-top: 1px solid var(--border);
+      display: none;
+    }
+
+    .chart-container.visible { display: block; }
+
+    .chart-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+
+    canvas#inflationChart {
+      width: 100% !important;
+      max-height: 160px;
+    }
+
+    /* =====================================================
+       ERROR STATE
+    ===================================================== */
+    .error-banner {
+      background: rgba(224,92,92,0.1);
+      border: 1px solid rgba(224,92,92,0.3);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--tighten);
+      margin-top: 16px;
+      display: none;
+    }
+
+    .error-banner.visible { display: block; }
+
+    /* =====================================================
+       FOOTER
+    ===================================================== */
+    footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    /* =====================================================
+       ANIMATIONS
+    ===================================================== */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-up {
+      animation: fadeUp 0.4s ease forwards;
+    }
+
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+      50% { box-shadow: 0 0 0 6px transparent; }
+    }
+
+    .result-panel.computed {
+      animation: pulse-border 1s ease 0.3s;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-wrapper">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-left">
+      <div class="logo-eyebrow">Federal Reserve Advisory System</div>
+      <h1>Rate <em>Decision</em><br>Engine</h1>
+      <p class="header-sub">AI-powered monetary policy recommendations based on the Taylor Rule and extended macro indicators.</p>
+    </div>
+    <div class="mode-toggle">
+      <button class="active" data-mode="basic" onclick="setMode('basic')">Basic</button>
+      <button data-mode="advanced" onclick="setMode('advanced')">Advanced</button>
+    </div>
+  </header>
+
+  <div class="main-grid">
+
+    <!-- LEFT: INPUT PANEL -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Economic Indicators</span>
+        <span class="panel-badge">Input</span>
+      </div>
+      <div class="panel-body">
+
+        <!-- Core Indicators -->
+        <div class="form-section">
+          <div class="section-label">Core Indicators</div>
+          <div class="field-grid">
+
+            <div class="field">
+              <label>
+                Inflation Rate (CPI/PCE)
+                <span class="required">*</span>
+                <span class="tooltip-icon" data-tip="Current annual inflation rate as measured by CPI or PCE. The Fed targets ~2%.">?</span>
+              </label>
+              <div class="input-wrapper">
+                <input type="number" id="inflation" step="0.1" placeholder="e.g. 4.2" min="-5" max="30" />
+                <span class="unit">%</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>
+                Inflation Target
+                <span class="required">*</span>
+                <span class="tooltip-icon" data-tip="The Fed's official inflation target. Traditionally 2.0%.">?</span>
+              </label>
+              <div class="input-wrapper">
+                <input type="number" id="inflationTarget" step="0.1" value="2.0" min="0" max="10" />
+                <span class="unit">%</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>
+                Unemployment Rate
+                <span class="required">*</span>
+                <span class="tooltip-icon" data-tip="Current U-3 unemployment rate. Natural rate (NAIRU) assumed ~4%.">?</span>
+              </label>
+              <div class="input-wrapper">
+                <input type="number" id="unemployment" step="0.1" placeholder="e.g. 3.7" min="0" max="30" />
+                <span class="unit">%</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>
+                GDP Growth Rate
+                <span class="required">*</span>
+                <span class="tooltip-icon" data-tip="Annualized real GDP growth rate. Potential (long-run) growth assumed ~2%.">?</span>
+              </label>
+              <div class="input-wrapper">
+                <input type="number" id="gdpGrowth" step="0.1" placeholder="e.g. 2.8" min="-20" max="20" />
+                <span class="unit">%</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Extended Indicators -->
+        <div class="form-section">
+          <div class="section-label">Extended Indicators <span style="font-size:10px;color:var(--text-dim);letter-spacing:0;text-transform:none;">(optional)</span></div>
+          <div class="field-grid">
+
+            <div class="field">
+              <label>
+                Wage Growth
+                <span class="optional">optional</span>
+                <span class="tooltip-icon" data-tip="Year-over-year average hourly earnings growth. Above ~3.5% is considered inflationary.">?</span>
+              </label>
+              <div class="input-wrapper">
+                <input type="number" id="wageGrowth" step="0.1" placeholder="e.g. 4.1" min="0" max="20" />
+                <span class="unit">%</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>
+                Consumer Spending Growth
+                <span class="optional">optional</span>
+                <span class="tooltip-icon" data-tip="Real personal consumption expenditure growth. Above ~2.5% signals strong demand.">?</span>
+              </label>
+              <div class="input-wrapper">
+                <input type="number" id="consumerSpending" step="0.1" placeholder="e.g. 3.0" min="-20" max="20" />
+                <span class="unit">%</span>
+              </div>
+            </div>
+
+            <div class="field slider-field">
+              <label>
+                Market Conditions
+                <span class="optional">optional</span>
+                <span class="tooltip-icon" data-tip="Composite market score (0–100). 50 = neutral. High values = buoyant markets (inflationary risk). Low = fragile markets.">?</span>
+              </label>
+              <div class="slider-row">
+                <input type="range" id="marketConditions" min="0" max="100" value="50"
+                  oninput="document.getElementById('marketVal').textContent = this.value" />
+                <span class="slider-value" id="marketVal">50</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>
+                Inflation Expectations
+                <span class="optional">optional</span>
+                <span class="tooltip-icon" data-tip="Market or survey-based 5-year inflation expectations. Higher expectations reinforce actual inflation.">?</span>
+              </label>
+              <div class="input-wrapper">
+                <input type="number" id="inflationExpectations" step="0.1" placeholder="e.g. 2.5" min="0" max="15" />
+                <span class="unit">%</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ADVANCED: Weights + Assumptions -->
+        <div id="weights-section" class="form-section">
+          <div class="section-label">Model Weights & Assumptions</div>
+          <div class="field-grid">
+
+            <div class="field slider-field">
+              <label>
+                Inflation Weight
+                <span class="tooltip-icon" data-tip="How aggressively the model responds to inflation deviations. Standard Taylor Rule uses 1.5.">?</span>
+              </label>
+              <div class="slider-row">
+                <input type="range" id="w_inflation" min="0" max="3" step="0.1" value="1.5"
+                  oninput="document.getElementById('w_inflationVal').textContent = this.value" />
+                <span class="slider-value" id="w_inflationVal">1.5</span>
+              </div>
+            </div>
+
+            <div class="field slider-field">
+              <label>
+                Output Gap Weight
+                <span class="tooltip-icon" data-tip="Response to GDP growth deviating from potential. Standard Taylor Rule uses 0.5.">?</span>
+              </label>
+              <div class="slider-row">
+                <input type="range" id="w_output" min="0" max="2" step="0.1" value="0.5"
+                  oninput="document.getElementById('w_outputVal').textContent = this.value" />
+                <span class="slider-value" id="w_outputVal">0.5</span>
+              </div>
+            </div>
+
+            <div class="field slider-field">
+              <label>
+                Unemployment Weight
+                <span class="tooltip-icon" data-tip="How much labor market conditions affect the rate decision.">?</span>
+              </label>
+              <div class="slider-row">
+                <input type="range" id="w_unemployment" min="0" max="2" step="0.1" value="0.4"
+                  oninput="document.getElementById('w_unemploymentVal').textContent = this.value" />
+                <span class="slider-value" id="w_unemploymentVal">0.4</span>
+              </div>
+            </div>
+
+            <div class="field slider-field">
+              <label>
+                Natural Unemployment (NAIRU)
+                <span class="tooltip-icon" data-tip="Assumed natural rate of unemployment — the level consistent with stable inflation.">?</span>
+              </label>
+              <div class="slider-row">
+                <input type="range" id="naturalUnemployment" min="2" max="7" step="0.1" value="4.0"
+                  oninput="document.getElementById('nairu_val').textContent = this.value + '%'" />
+                <span class="slider-value" id="nairu_val">4.0%</span>
+              </div>
+            </div>
+
+            <div class="field slider-field">
+              <label>
+                Potential GDP Growth
+                <span class="tooltip-icon" data-tip="Long-run potential GDP growth rate. Typically 2.0% for the US.">?</span>
+              </label>
+              <div class="slider-row">
+                <input type="range" id="potentialGdp" min="0.5" max="4" step="0.1" value="2.0"
+                  oninput="document.getElementById('potential_val').textContent = this.value + '%'" />
+                <span class="slider-value" id="potential_val">2.0%</span>
+              </div>
+            </div>
+
+            <div class="field slider-field">
+              <label>
+                Expectations Weight
+                <span class="tooltip-icon" data-tip="How much forward-looking inflation expectations influence the model.">?</span>
+              </label>
+              <div class="slider-row">
+                <input type="range" id="w_expectations" min="0" max="1" step="0.05" value="0.3"
+                  oninput="document.getElementById('w_expectVal').textContent = this.value" />
+                <span class="slider-value" id="w_expectVal">0.3</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Error banner -->
+        <div id="error-banner" class="error-banner"></div>
+
+        <!-- Run button -->
+        <button class="run-btn" id="runBtn" onclick="runModel()">
+          <div class="btn-inner">
+            <div class="spinner"></div>
+            <span class="btn-text">Run Model</span>
+          </div>
+        </button>
+
+      </div><!-- end panel-body -->
+    </div><!-- end input panel -->
+
+    <!-- RIGHT: RESULT PANEL -->
+    <div class="panel result-panel" id="resultPanel">
+      <div class="panel-header">
+        <span class="panel-title">Recommendation</span>
+        <span class="panel-badge" id="result-badge">Awaiting Input</span>
+      </div>
+
+      <!-- Empty state -->
+      <div class="result-empty" id="result-empty">
+        <div class="result-empty-icon">🏦</div>
+        <p class="result-empty-text">Enter economic indicators and click "Run Model" to generate a rate recommendation.</p>
+      </div>
+
+      <!-- Filled state -->
+      <div id="result-filled">
+
+        <!-- Hero: Rate + Stance -->
+        <div class="result-hero">
+          <div class="result-stance-pill" id="stance-pill">—</div>
+          <div class="result-rate" id="result-rate">—</div>
+          <div class="result-label">Recommended Rate Change</div>
+        </div>
+
+        <!-- Confidence -->
+        <div class="confidence-row">
+          <span class="confidence-label">Confidence</span>
+          <div class="confidence-bar">
+            <div class="confidence-fill" id="confidence-fill"></div>
+          </div>
+          <span class="confidence-val" id="confidence-val">—</span>
+        </div>
+
+        <!-- Regime alerts -->
+        <div id="regime-alerts"></div>
+
+        <!-- Explanation -->
+        <div class="explanation-block">
+          <div class="explanation-eyebrow">Analysis</div>
+          <p class="explanation-text" id="explanation-text">—</p>
+        </div>
+
+        <!-- Factor Breakdown -->
+        <div class="factors-block">
+          <div class="factors-eyebrow">Factor Contributions</div>
+          <div id="factors-list"></div>
+        </div>
+
+        <!-- Chart (optional) -->
+        <div class="chart-container" id="chart-container">
+          <div class="chart-eyebrow">Inflation vs Target</div>
+          <canvas id="inflationChart"></canvas>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- end main-grid -->
+
+  <footer>
+    <p>Fed Rate Advisor — Educational tool based on the Taylor Rule (Taylor, 1993).</p>
+    <p>Not financial advice. Model outputs are illustrative only.</p>
+  </footer>
+
+</div><!-- end app-wrapper -->
+
+<!-- Chart.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+<script>
+  /* =====================================================
+     MODE TOGGLE
+  ===================================================== */
+  let currentMode = 'basic';
+
+  function setMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-toggle button').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    const ws = document.getElementById('weights-section');
+    ws.classList.toggle('visible', mode === 'advanced');
+  }
+
+  /* =====================================================
+     RUN MODEL
+  ===================================================== */
+  let chartInstance = null;
+
+  async function runModel() {
+    const btn = document.getElementById('runBtn');
+    const errBanner = document.getElementById('error-banner');
+
+    // Gather inputs
+    const inflation = document.getElementById('inflation').value;
+    const inflationTarget = document.getElementById('inflationTarget').value;
+    const unemployment = document.getElementById('unemployment').value;
+    const gdpGrowth = document.getElementById('gdpGrowth').value;
+    const wageGrowth = document.getElementById('wageGrowth').value;
+    const consumerSpending = document.getElementById('consumerSpending').value;
+    const marketConditions = document.getElementById('marketConditions').value;
+    const inflationExpectations = document.getElementById('inflationExpectations').value;
+
+    // Validation
+    const errors = [];
+    if (!inflation) errors.push('Inflation Rate is required.');
+    if (!inflationTarget) errors.push('Inflation Target is required.');
+    if (!unemployment) errors.push('Unemployment Rate is required.');
+    if (!gdpGrowth) errors.push('GDP Growth Rate is required.');
+
+    if (errors.length > 0) {
+      errBanner.textContent = errors.join(' ');
+      errBanner.classList.add('visible');
+      return;
+    }
+    errBanner.classList.remove('visible');
+
+    // Build payload
+    const payload = {
+      inflation: parseFloat(inflation),
+      inflationTarget: parseFloat(inflationTarget),
+      unemployment: parseFloat(unemployment),
+      gdpGrowth: parseFloat(gdpGrowth),
+      wageGrowth: wageGrowth || undefined,
+      consumerSpending: consumerSpending || undefined,
+      marketConditions: parseFloat(marketConditions),
+      inflationExpectations: inflationExpectations || undefined,
+    };
+
+    // Advanced weights
+    if (currentMode === 'advanced') {
+      payload.naturalUnemployment = parseFloat(document.getElementById('naturalUnemployment').value);
+      payload.potentialGdp = parseFloat(document.getElementById('potentialGdp').value);
+      payload.weights = {
+        inflationGap: parseFloat(document.getElementById('w_inflation').value),
+        outputGap: parseFloat(document.getElementById('w_output').value),
+        unemploymentGap: parseFloat(document.getElementById('w_unemployment').value),
+        expectations: parseFloat(document.getElementById('w_expectations').value),
+      };
+    }
+
+    // Loading state
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const msg = data.details ? data.details.join(' ') : (data.error || 'Server error.');
+        throw new Error(msg);
+      }
+
+      renderResult(data, payload);
+    } catch (err) {
+      errBanner.textContent = 'Error: ' + err.message;
+      errBanner.classList.add('visible');
+    } finally {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  }
+
+  /* =====================================================
+     RENDER RESULT
+  ===================================================== */
+  function renderResult(data, inputs) {
+    // Show result panel
+    document.getElementById('result-empty').style.display = 'none';
+    const filled = document.getElementById('result-filled');
+    filled.style.display = 'block';
+    filled.classList.add('fade-up');
+    setTimeout(() => filled.classList.remove('fade-up'), 500);
+
+    const panel = document.getElementById('resultPanel');
+    panel.classList.add('computed');
+    setTimeout(() => panel.classList.remove('computed'), 1500);
+
+    // Badge
+    document.getElementById('result-badge').textContent = new Date().toLocaleTimeString();
+
+    // Rate
+    const rateEl = document.getElementById('result-rate');
+    rateEl.textContent = data.recommendationFormatted;
+    rateEl.className = 'result-rate ' + data.stance;
+
+    // Stance pill
+    const pill = document.getElementById('stance-pill');
+    pill.textContent = data.stance;
+    pill.className = 'result-stance-pill ' + data.stance;
+
+    // Confidence
+    const fill = document.getElementById('confidence-fill');
+    fill.className = 'confidence-fill ' + data.confidence + (data.stance === 'Loosen' ? ' Loosen' : '');
+    document.getElementById('confidence-val').textContent = data.confidence;
+
+    // Regime alerts
+    const alertsEl = document.getElementById('regime-alerts');
+    alertsEl.innerHTML = '';
+    if (data.regimeNotes && data.regimeNotes.length > 0) {
+      data.regimeNotes.forEach(note => {
+        const div = document.createElement('div');
+        div.className = 'regime-alert';
+        div.textContent = note;
+        alertsEl.appendChild(div);
+      });
+    }
+
+    // Explanation
+    document.getElementById('explanation-text').textContent = data.explanation;
+
+    // Factor breakdown
+    const factorsList = document.getElementById('factors-list');
+    factorsList.innerHTML = '';
+    const maxContrib = Math.max(...Object.values(data.factors).map(f => Math.abs(parseFloat(f.contribution))), 0.01);
+
+    Object.entries(data.factors).forEach(([name, f]) => {
+      const contrib = parseFloat(f.contribution);
+      const pct = Math.min(100, (Math.abs(contrib) / maxContrib) * 100);
+      const isPos = contrib > 0.001;
+      const isNeg = contrib < -0.001;
+
+      const row = document.createElement('div');
+      row.className = 'factor-row';
+      row.innerHTML = `
+        <span class="factor-name">${name}</span>
+        <div class="factor-bar-wrapper">
+          <div class="factor-bar-track" style="
+            width: ${pct / 2}%;
+            left: ${isNeg ? (50 - pct / 2) + '%' : '50%'};
+            background: ${isPos ? 'var(--tighten)' : isNeg ? 'var(--loosen)' : 'var(--text-dim)'};
+            opacity: 0.7;
+          "></div>
+        </div>
+        <span class="factor-contrib ${isPos ? 'positive' : isNeg ? 'negative' : 'neutral'}">
+          ${isPos ? '+' : ''}${contrib.toFixed(3)}
+        </span>
+      `;
+      factorsList.appendChild(row);
+    });
+
+    // Chart
+    renderChart(inputs.inflation, inputs.inflationTarget);
+  }
+
+  /* =====================================================
+     CHART
+  ===================================================== */
+  function renderChart(inflation, target) {
+    const container = document.getElementById('chart-container');
+    container.classList.add('visible');
+    const ctx = document.getElementById('inflationChart').getContext('2d');
+
+    // Simple bar chart: current inflation vs target
+    if (chartInstance) chartInstance.destroy();
+
+    chartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Current Inflation', 'Target Inflation'],
+        datasets: [{
+          data: [inflation, target],
+          backgroundColor: [
+            inflation > target ? 'rgba(224,92,92,0.7)' : 'rgba(92,184,160,0.7)',
+            'rgba(200,169,110,0.5)',
+          ],
+          borderColor: [
+            inflation > target ? '#e05c5c' : '#5cb8a0',
+            '#c8a96e',
+          ],
+          borderWidth: 1,
+          borderRadius: 4,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` ${ctx.parsed.y.toFixed(1)}%`
+            },
+            backgroundColor: '#1e2433',
+            titleColor: '#c8a96e',
+            bodyColor: '#e8e6df',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1,
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: '#7a7d8a', font: { family: 'DM Mono', size: 11 } },
+            grid: { display: false },
+            border: { color: 'rgba(255,255,255,0.07)' },
+          },
+          y: {
+            ticks: {
+              color: '#7a7d8a',
+              font: { family: 'DM Mono', size: 11 },
+              callback: v => v + '%',
+            },
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            border: { display: false },
+          },
+        },
+      },
+    });
+  }
+
+  /* =====================================================
+     ENTER KEY SUPPORT
+  ===================================================== */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      const active = document.activeElement;
+      if (active && active.tagName === 'INPUT' && active.type === 'number') {
+        runModel();
+      }
+    }
+  });
+</script>
+</body>
+</html>
