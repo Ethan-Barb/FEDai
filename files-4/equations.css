@@ -1,0 +1,71 @@
+/* ── Equations Panel ── */
+.equation-block {
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.equation-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+.equation-name {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent-purple);
+  margin-bottom: 10px;
+}
+
+.equation-render {
+  background: rgba(167, 139, 250, 0.04);
+  border: 1px solid rgba(167, 139, 250, 0.1);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  margin-bottom: 10px;
+  overflow-x: auto;
+  text-align: center;
+}
+.equation-render .katex { font-size: 1rem; color: var(--text-bright); }
+
+.equation-desc {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.equation-desc code {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  background: rgba(79, 163, 247, 0.08);
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--accent-cyan);
+}
+
+/* Variable Table */
+.var-table {
+  width: 100%;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+.var-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(30, 42, 63, 0.5);
+}
+.var-table td:first-child {
+  color: var(--accent-cyan);
+  width: 40px;
+  font-weight: 500;
+}
+.var-table td:last-child { color: var(--text-secondary); }
+
+/* Current Values in Equations */
+.live-val {
+  display: inline-block;
+  padding: 1px 6px;
+  background: rgba(52, 211, 153, 0.1);
+  border-radius: 3px;
+  color: var(--accent-green);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+}
